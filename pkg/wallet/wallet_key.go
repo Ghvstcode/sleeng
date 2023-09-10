@@ -171,6 +171,7 @@ func (k *KeyOps) WriteKeyToFile(alias string, key ed25519.PrivateKey, walletAddr
 	data.Wallets[alias] = Wallet{Key: base58.Encode(key), Balance: decimal.Zero, PublicKey: walletAddress}
 	data.ActiveAlias = alias // Setting the new key as active
 
+	fmt.Println("New key added successfully", alias)
 	updatedData, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("error marshaling JSON: %w", err)

@@ -10,7 +10,6 @@ import (
 
 var (
 	listAll bool
-	alias   string
 )
 
 var AddressCmd = &cobra.Command{
@@ -24,7 +23,6 @@ Use the --all flag to list public keys of all wallets.`,
 
 func init() {
 	AddressCmd.Flags().BoolVar(&listAll, "all", false, "List all wallet addresses")
-	AddressCmd.Flags().StringVar(&alias, "alias", "", "Get the public key of the wallet with the specified alias")
 }
 
 func displayAddress(_ *cobra.Command, _ []string) error {
@@ -45,12 +43,12 @@ func displayAddress(_ *cobra.Command, _ []string) error {
 		return nil
 	}
 
-	if alias != "" {
-		publicKey, err := wc.RetrieveWalletAddressByAlias(alias)
+	if aliasFlag != "" {
+		publicKey, err := wc.RetrieveWalletAddressByAlias(aliasFlag)
 		if err != nil {
-			return fmt.Errorf("failed to retrieve public key for alias %s: %v", alias, err)
+			return fmt.Errorf("failed to retrieve public key for alias %s: %v", aliasFlag, err)
 		}
-		boldBlue.Printf("Public Key of %s: %s\n", alias, publicKey)
+		boldBlue.Printf("Public Key of %s: %s\n", aliasFlag, publicKey)
 		return nil
 	}
 

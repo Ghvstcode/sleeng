@@ -194,6 +194,24 @@ func (w *WalletConfig) GetTransactionHistory() ([]*Transaction, error) {
 	return transactions, nil
 }
 
+func (w *WalletConfig) CreateNewWalletWithKey(alias, privateKey string) (string, error) {
+	privkey, err := solana.PrivateKeyFromBase58(privateKey)
+	if err != nil {
+		return "", fmt.Errorf("error generating new wallet with key: %w", err)
+	}
+
+	if alias == "" {
+		alias = getRandomAlias() + "-" + "wallet"
+	}
+
+	err = w.KeyOps.WriteKeyToFile(alias, ed25519.PrivateKey(privkey), privkey.PublicKey().String())
+	if err != nil {
+		return "", err
+	}
+
+	return privkey.PublicKey().String(), nil
+}
+
 // getRandomAlias generates a random alias using words from the BIP-39 word list.
 func getRandomAlias() string {
 	// Get the English BIP-39 word list

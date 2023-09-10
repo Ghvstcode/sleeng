@@ -82,7 +82,7 @@ func importExistingPaperWallet(wc *wallet.WalletConfig) error {
 
 func handleFileBasedWallet(wc *wallet.WalletConfig) error {
 	if privateKeyFlag != "" {
-
+		return createNewFileBasedWallet(wc, aliasFlag, privateKeyFlag)
 	}
 
 	hasWallets, err := wc.HasWallets()
@@ -93,7 +93,7 @@ func handleFileBasedWallet(wc *wallet.WalletConfig) error {
 	if hasWallets {
 		return handleExistingWallets(wc)
 	}
-	return createNewFileBasedWallet(wc, "")
+	return createNewFileBasedWallet(wc, aliasFlag, "")
 }
 
 func handleExistingWallets(wc *wallet.WalletConfig) error {
@@ -106,7 +106,7 @@ func handleExistingWallets(wc *wallet.WalletConfig) error {
 	case "Select Existing Wallet":
 		return selectExistingWallet(wc)
 	case "Create New Wallet":
-		return createNewFileBasedWallet(wc, "")
+		return createNewFileBasedWallet(wc, "", "")
 	default:
 		return fmt.Errorf("invalid choice: %s", choice)
 	}
@@ -138,7 +138,8 @@ func selectExistingWallet(wc *wallet.WalletConfig) error {
 	return nil
 }
 
-func createNewFileBasedWallet(wc *wallet.WalletConfig, alias string) error {
+func createNewFileBasedWallet(wc *wallet.WalletConfig, alias, privateKey string) error {
+	// Prompt for alias if it's empty
 	if alias == "" {
 		var err error
 		alias, err = promptForInput("Create An Alias For Your Wallet:", nil)
@@ -147,13 +148,27 @@ func createNewFileBasedWallet(wc *wallet.WalletConfig, alias string) error {
 		}
 	}
 
-	newWallet, err := wc.CreateNewWallet(alias)
+	fmt.Println("ALIASSSS", alias)
+	// Create or import the wallet based on whether a private key is provided
+	var newWallet string
+	var err error
+	if privateKey == "" {
+		newWallet, err = wc.CreateNewWallet(alias)
+	} else {
+		newWallet, err = wc.CreateNewWalletWithKey(alias, privateKey)
+	}
 	if err != nil {
 		return fmt.Errorf("failed to create new wallet: %w", err)
 	}
 
+	// Copy the new wallet address to the clipboard and print it
 	clipboard.WriteAll(newWallet)
-	printBlue("New Wallet Created. Your Address Is: %s (copied to clipboard)\n", newWallet)
+	action := "Created"
+	if privateKey != "" {
+		action = "Imported"
+	}
+	printBlue("New Wallet %s. Your Address Is: %s (copied to clipboard)\n", action, newWallet)
+
 	return nil
 }
 
