@@ -150,7 +150,6 @@ func createNewFileBasedWallet(wc *wallet.WalletConfig, alias, privateKey string)
 		}
 	}
 
-	fmt.Println("ALIASSSS", alias)
 	// Create or import the wallet based on whether a private key is provided
 	var newWallet string
 	var err error

@@ -266,3 +266,46 @@ func (w *WalletConfig) IsValidSeed(mnemonic string) error {
 
 	return nil
 }
+
+//func (w *WalletConfig) SendFunds(amount string, recipient string) (string, error) {
+//	if w.Wallet != nil {
+//		publicKeyStr = w.Wallet.PublicKey().String()
+//	} else {
+//		publicKeyStr, err = w.KeyOps.GetCurrentPublicKey()
+//		if err != nil {
+//			return nil, fmt.Errorf("failed to get current private key: %w", err)
+//		}
+//	}
+//
+//	// 1. Check if the amount is valid
+//	amountDec, err := decimal.NewFromString(amount)
+//	if err != nil {
+//		return "", fmt.Errorf("invalid amount: %w", err)
+//	}
+//
+//	// 2. Check if the recipient is valid
+//	recipientPubkey, err := solana.PublicKeyFromBase58(recipient)
+//	if err != nil {
+//		return "", fmt.Errorf("invalid recipient: %w", err)
+//	}
+//
+//	// 3. Check if the wallet is unlocked
+//	if w.Wallet == nil {
+//		return "", fmt.Errorf("wallet is locked")
+//	}
+//
+//	// 4. Check if the wallet has enough balance
+//	if w.Wallet.Balance().LessThan(amountDec) {
+//		return "", fmt.Errorf("insufficient balance")
+//	}
+//
+//	// 5. Send the funds
+//	txHash, err := w.Wallet.Transfer(recipientPubkey, amountDec)
+//	if err != nil {
+//		return "", fmt.Errorf("error sending funds: %w", err)
+//	}
+//
+//	return txHash, nil
+//}
+//
+//}

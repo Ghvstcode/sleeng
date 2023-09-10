@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/mr-tron/base58/base58"
 	"github.com/shopspring/decimal"
 	"os"
 	"strconv"
@@ -58,8 +59,12 @@ func (k *KeyOps) GetCurrentPrivateKey() (string, error) {
 	if !exists {
 		return "", ErrActiveWalletNotFound
 	}
+	ret, err := getPrivateKeyFromSolCLICompStr(activeWallet.PrivateKey)
+	if err != nil {
+		return "", err
+	}
 
-	return activeWallet.PrivateKey, nil
+	return base58.Encode(ret), nil
 }
 
 // GetPrivateKeyByAlias retrieves a wallet's private key by its alias.
@@ -235,4 +240,23 @@ func getSolCLIComptKey(key ed25519.PrivateKey) string {
 	builder.WriteString("]")
 
 	return builder.String()
+}
+
+func getPrivateKeyFromSolCLICompStr(strKey string) (ed25519.PrivateKey, error) {
+	strKey = strings.TrimPrefix(strKey, "[")
+	strKey = strings.TrimSuffix(strKey, "]")
+
+	strArr := strings.Split(strKey, ",")
+
+	byteArr := make([]byte, len(strArr))
+
+	for i, s := range strArr {
+		num, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, err
+		}
+		byteArr[i] = byte(num)
+	}
+
+	return ed25519.PrivateKey(byteArr), nil
 }

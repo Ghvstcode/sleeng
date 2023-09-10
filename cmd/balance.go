@@ -15,11 +15,11 @@ var BalanceCmd = &cobra.Command{
 func displayBalance(cmd *cobra.Command, args []string) error {
 	var balance string
 	var err error
-	var wconfig wallet.WalletConfig
+	wc := wallet.NewWalletConfig()
 	if aliasFlag == "" {
-		balance, err = wconfig.GetCurrentWalletBalanceInEUR("") // Retrieve balance of the current active wallet
+		balance, err = wc.GetCurrentWalletBalanceInEUR("") // Retrieve balance of the current active wallet
 	} else {
-		balance, err = wconfig.GetCurrentWalletBalanceInEUR(aliasFlag) // Retrieve balance of the wallet by alias
+		balance, err = wc.GetCurrentWalletBalanceInEUR(aliasFlag) // Retrieve balance of the wallet by alias
 	}
 
 	if err != nil {
