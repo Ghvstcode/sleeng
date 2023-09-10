@@ -19,7 +19,6 @@ func send(cmd *cobra.Command, args []string) {
 	amount := args[0]
 	destination := args[1]
 
-	// Assuming you have a WalletConfig object named `walletConfig`
 	walletConfig := wallet.NewWalletConfig()
 
 	signature, err := walletConfig.SendFunds(context.Background(), amount, destination)

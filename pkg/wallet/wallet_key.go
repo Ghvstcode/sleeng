@@ -84,18 +84,14 @@ func (k *KeyOps) GetPrivateKeyByAlias(alias string) (string, error) {
 
 // IsKeyFilePresent checks if there is a file containing some keys already in place.
 func (k *KeyOps) IsKeyFilePresent() (bool, error) {
-	// Try to read the file
 	_, err := k.FileReader.ReadFile(KeyFilePath)
 	if err != nil {
-		// If the file doesn't exist, it's okay to return false
 		if errors.Is(err, os.ErrNotExist) {
 			return false, nil
 		}
-		// For any other kind of error, return it
 		return false, fmt.Errorf("error accessing file: %w", err)
 	}
 
-	// If the function reached this point, it means the file exists and is readable
 	return true, nil
 }
 
@@ -106,12 +102,10 @@ func (k *KeyOps) SetActiveKey(aliasToActivate string) error {
 		return err
 	}
 
-	// Check if the alias exists
 	if _, exists := data.Wallets[aliasToActivate]; !exists {
 		return fmt.Errorf("alias does not exist: %s", aliasToActivate)
 	}
 
-	// Set the alias to active
 	data.ActiveAlias = aliasToActivate
 
 	updatedData, err := json.Marshal(data)
@@ -119,7 +113,6 @@ func (k *KeyOps) SetActiveKey(aliasToActivate string) error {
 		return fmt.Errorf("error marshaling JSON: %w", err)
 	}
 
-	// Assuming you'll introduce FileWriter interface for writing to a file
 	return k.FileWriter.WriteFile(KeyFilePath, updatedData)
 }
 
@@ -153,6 +146,7 @@ func (k *KeyOps) GetPublicKeyByAlias(alias string) (string, error) {
 	return wallet.PublicKey, nil
 }
 
+// WriteKeyToFile writes a new key to the key file.
 func (k *KeyOps) WriteKeyToFile(alias string, key ed25519.PrivateKey, walletAddress string) error {
 	var data WalletData
 	fileExists, err := k.IsKeyFilePresent()
@@ -176,17 +170,17 @@ func (k *KeyOps) WriteKeyToFile(alias string, key ed25519.PrivateKey, walletAddr
 
 	solanaCliCompatiblekey := getSolCLIComptKey(key)
 	data.Wallets[alias] = Wallet{PrivateKey: solanaCliCompatiblekey, Balance: decimal.Zero, PublicKey: walletAddress}
-	data.ActiveAlias = alias // Setting the new key as active
+	data.ActiveAlias = alias
 
 	updatedData, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("error marshaling JSON: %w", err)
 	}
 
-	// Assuming FileWriter interface has been introduced for writing to a file
 	return k.FileWriter.WriteFile(KeyFilePath, updatedData)
 }
 
+// PrintAllKeys prints all keys in the key file.
 func (k *KeyOps) PrintAllKeys() ([]string, map[string]string, error) {
 	data, err := k.readWalletData(KeyFilePath)
 	if err != nil {
@@ -194,7 +188,7 @@ func (k *KeyOps) PrintAllKeys() ([]string, map[string]string, error) {
 	}
 
 	shouldPrintBalance := true
-	rate, err := fetchSOLEURRate() // Assuming this function exists elsewhere in your code
+	rate, err := fetchSOLEURRate()
 	if err != nil {
 		shouldPrintBalance = false
 		return nil, nil, fmt.Errorf("error fetching SOL to EUR rate: %v", err)
@@ -221,6 +215,7 @@ func (k *KeyOps) PrintAllKeys() ([]string, map[string]string, error) {
 	return aliases, keyMap, nil
 }
 
+// getSolCLIComptKey converts a private key to a Solana CLI compatible string.
 func getSolCLIComptKey(key ed25519.PrivateKey) string {
 	intArr := make([]int, 0, len(key))
 
@@ -242,6 +237,7 @@ func getSolCLIComptKey(key ed25519.PrivateKey) string {
 	return builder.String()
 }
 
+// getPrivateKeyFromSolCLICompStr converts a Solana CLI compatible string to a private key.
 func getPrivateKeyFromSolCLICompStr(strKey string) (ed25519.PrivateKey, error) {
 	strKey = strings.TrimPrefix(strKey, "[")
 	strKey = strings.TrimSuffix(strKey, "]")

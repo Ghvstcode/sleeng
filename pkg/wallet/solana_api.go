@@ -6,7 +6,6 @@ import (
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/shopspring/decimal"
-	"log"
 )
 
 const LamportsInOneSol = 1000000000 // Lamports in one SOL
@@ -15,8 +14,9 @@ type ClientInterface interface {
 	GetBalance(ctx context.Context, publicKey solana.PublicKey, commitment rpc.CommitmentType) (*rpc.GetBalanceResult, error)
 }
 
-var rpcClient ClientInterface = rpc.New(rpc.DevNet_RPC) // Create a global RPC client
+var rpcClient ClientInterface = rpc.New(rpc.DevNet_RPC) // Create a global RPC client (makes my life easier when testing)
 
+// fetchSolBalance fetches the SOL balance of a given wallet.
 func (w *WalletConfig) fetchSolBalance(alias string, keyStore KeyStore) (decimal.Decimal, error) {
 	var publicKey solana.PublicKey
 	var err error
@@ -40,11 +40,11 @@ func (w *WalletConfig) fetchSolBalance(alias string, keyStore KeyStore) (decimal
 
 	lamportValue := decimal.NewFromInt(int64(balanceResp.Value))
 	fin := lamportValue.Div(decimal.NewFromInt(LamportsInOneSol))
-	log.Print("BALANCE", fin)
 	// Convert lamports to SOL
 	return fin, nil
 }
 
+// fetchPublicKeyByAlias fetches the public key by alias from the key store.
 func fetchPublicKeyByAlias(alias string, keyStore KeyStore) (solana.PublicKey, error) {
 	privateKey, err := keyStore.GetPrivateKeyByAlias(alias)
 	if err != nil {
@@ -54,6 +54,7 @@ func fetchPublicKeyByAlias(alias string, keyStore KeyStore) (solana.PublicKey, e
 	return fetchPublicKeyFromPrivateKey(privateKey)
 }
 
+// fetchCurrentPublicKey fetches the current public key from the key store.
 func fetchCurrentPublicKey(keyStore KeyStore) (solana.PublicKey, error) {
 	privateKey, err := keyStore.GetCurrentPrivateKey()
 	if err != nil {

@@ -36,7 +36,7 @@ func printBlue(msg string, args ...interface{}) {
 	blue.Printf(msg, args...)
 }
 
-func initializeWallet(cmd *cobra.Command, args []string) error {
+func initializeWallet(_ *cobra.Command, _ []string) error {
 	wc := wallet.NewWalletConfig()
 	if isPaperBased {
 		return handlePaperBasedWallet(wc)

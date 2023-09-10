@@ -8,6 +8,7 @@ import (
 	"net/http"
 )
 
+// KrakenResponse is the response from Kraken API
 type KrakenResponse struct {
 	Error  []string `json:"error"`
 	Result struct {
@@ -25,6 +26,7 @@ type KrakenResponse struct {
 	} `json:"result"`
 }
 
+// fetchSOLEURRate fetches the current SOLEUR rate from Kraken API
 func fetchSOLEURRate() (decimal.Decimal, error) {
 	resp, err := http.Get("https://api.kraken.com/0/public/Ticker?pair=SOLEUR")
 	if err != nil {

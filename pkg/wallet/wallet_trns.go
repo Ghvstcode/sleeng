@@ -18,9 +18,11 @@ const (
 	transferInstructionType uint32 = 2
 	rpcTimeout                     = 10 * time.Second // 10 seconds
 	maxConcurrentRequests          = 50
-	systemProgramIDStr             = "11111111111111111111111111111111"
+	//systemProgramIDStr represents the system program ID for the solana chain which tells us more about the nature of instruction.
+	systemProgramIDStr = "11111111111111111111111111111111"
 )
 
+// Transaction represents a single transaction.
 type Transaction struct {
 	Amount    uint64
 	From      solana.PublicKey
@@ -29,6 +31,7 @@ type Transaction struct {
 	IsSender  bool
 }
 
+// decodeSystemTransfer decodes a system transfer instruction from a transaction.
 func decodeSystemTransfer(tx *solana.Transaction, timestamp time.Time, publicKey string) ([]*Transaction, error) {
 	systemProgramID := solana.MustPublicKeyFromBase58(systemProgramIDStr)
 	var transactions []*Transaction
@@ -64,6 +67,7 @@ func decodeSystemTransfer(tx *solana.Transaction, timestamp time.Time, publicKey
 	return transactions, nil
 }
 
+// fetchSingleTransaction fetches a single transaction for the given signature.
 func fetchSingleTransaction(client *rpc.Client, signature solana.Signature, publicKey string) ([]*Transaction, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), rpcTimeout)
 	defer cancel()
@@ -86,6 +90,9 @@ func fetchSingleTransaction(client *rpc.Client, signature solana.Signature, publ
 	return decodeSystemTransfer(tx, blockTime.Time(), publicKey)
 }
 
+// fetchTransactions fetches all transactions for the given public key.
+// It First fetches all signatures for the given public key
+// and then fetches each transaction for each signature.
 func fetchTransactions(publicKey string) ([]*Transaction, error) {
 	client := rpc.New(rpc.DevNet_RPC)
 	pub, err := solana.PublicKeyFromBase58(publicKey)

@@ -332,8 +332,6 @@ func TestPrintAllKeys(t *testing.T) {
 				FileReader: mockFileReader,
 			}
 
-			// Mocking fetchSOLEURRate function should be done here, to return tt.fetchRateError
-
 			_, _, err := ops.PrintAllKeys()
 
 			if err != nil {

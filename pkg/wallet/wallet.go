@@ -18,6 +18,7 @@ import (
 	"strings"
 )
 
+// WalletConfig represents the configuration for a wallet. Use NewWalletConfig to initialize.
 type WalletConfig struct {
 	PrivateKey   string `json:"private_key"`
 	Alias        string `json:"alias,omitempty"`
@@ -27,12 +28,14 @@ type WalletConfig struct {
 	KeyOps       KeyStore
 }
 
+// Wallet represents our own custom wallet.
 type Wallet struct {
 	PrivateKey string          `json:"key"`
 	Balance    decimal.Decimal `json:"balance"`
 	PublicKey  string          `json:"publicKey"`
 }
 
+// WalletData represents the data stored in a wallet file.
 type WalletData struct {
 	ActiveAlias string            `json:"activeAlias"`
 	Wallets     map[string]Wallet `json:"wallets"`
@@ -76,6 +79,7 @@ func (w *WalletConfig) GenerateNewPaperWallet() (string, string, error) {
 	return seed, wallet.PublicKey().String(), nil
 }
 
+// ImportWalletFromSeed imports a wallet from a seed phrase.
 func (w *WalletConfig) ImportWalletFromSeed(mnemonic string) (string, error) {
 	_, privateKey, err := createKeyPairWithMnemonic(mnemonic)
 	if err != nil {
@@ -91,6 +95,7 @@ func (w *WalletConfig) ImportWalletFromSeed(mnemonic string) (string, error) {
 	return wallet.PublicKey().String(), nil
 }
 
+// CreateNewWallet creates a new wallet.
 func (w *WalletConfig) CreateNewWallet(alias string) (string, error) {
 	account := solana.NewWallet()
 
@@ -106,99 +111,7 @@ func (w *WalletConfig) CreateNewWallet(alias string) (string, error) {
 	return account.PublicKey().String(), nil
 }
 
-func (w *WalletConfig) GetCurrentWalletBalanceInEUR(alias string) (string, error) {
-	solBalance, err := w.fetchSolBalance(alias, w.KeyOps)
-	if err != nil {
-		return "", err
-	}
-
-	//Get the SOL to EUR exchange rate
-	rate, err := fetchSOLEURRate()
-	if err != nil {
-		return "", err
-	}
-
-	//Convert SOL to EUR
-	eurBalance := solBalance.Mul(rate)
-
-	// Convert to string with 2 decimal places, e.g. 123.45 as this is the standard for displaying currencies
-	return eurBalance.StringFixed(2), nil
-}
-
-func (w *WalletConfig) SwitchWallet(alias string) error {
-	return w.KeyOps.SetActiveKey(alias)
-}
-
-func (w *WalletConfig) RetrieveWallets() ([]string, map[string]string, error) {
-	return w.KeyOps.PrintAllKeys()
-}
-
-func (w *WalletConfig) RetrieveCurrentWalletAddress() (string, error) {
-	if w.Wallet != nil {
-		return w.Wallet.PublicKey().String(), nil
-	}
-	return w.KeyOps.GetCurrentPublicKey()
-}
-
-func (w *WalletConfig) RetrieveWalletAddressByAlias(alias string) (string, error) {
-	return w.KeyOps.GetPublicKeyByAlias(alias)
-}
-
-func (w *WalletConfig) HasWallets() (bool, error) {
-	return w.KeyOps.IsKeyFilePresent()
-}
-
-// createKeyPairWithMnemonic creates a key pair with an optional mnemonic.
-func createKeyPairWithMnemonic(mnemonic string) (string, ed25519.PrivateKey, error) {
-	if mnemonic == "" {
-		entropy, err := bip39.NewEntropy(128)
-		if err != nil {
-			return "", nil, fmt.Errorf("error generating entropy: %w", err)
-		}
-
-		mnemonic, err = bip39.NewMnemonic(entropy)
-		if err != nil {
-			return "", nil, fmt.Errorf("error generating mnemonic: %w", err)
-		}
-	}
-
-	entropy, err := bip39.EntropyFromMnemonic(mnemonic)
-	if err != nil {
-		return "", nil, fmt.Errorf("mnemonic not valid: %w", err)
-	}
-
-	privateKey := ed25519.NewKeyFromSeed([]byte(hex.EncodeToString(entropy)))
-	return mnemonic, privateKey, nil
-}
-
-// FetchSOLEURRate fetches the current SOL to EUR exchange rate.
-func (w *WalletConfig) FetchSOLEURRate() (decimal.Decimal, error) {
-	return fetchSOLEURRate()
-}
-
-func (w *WalletConfig) GetTransactionHistory() ([]*Transaction, error) {
-	var err error
-	var publicKeyStr string
-
-	// Check if the Wallet object is already available
-	if w.Wallet != nil {
-		publicKeyStr = w.Wallet.PublicKey().String()
-	} else {
-		publicKeyStr, err = w.KeyOps.GetCurrentPublicKey()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get current private key: %w", err)
-		}
-	}
-
-	// Fetch transactions using the public key
-	transactions, err := fetchTransactions(publicKeyStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch transactions: %w", err)
-	}
-
-	return transactions, nil
-}
-
+// CreateNewWalletWithKey creates a new wallet with a private key.
 func (w *WalletConfig) CreateNewWalletWithKey(alias, privateKey string) (string, error) {
 	privkey, err := solana.PrivateKeyFromBase58(privateKey)
 	if err != nil {
@@ -217,61 +130,52 @@ func (w *WalletConfig) CreateNewWalletWithKey(alias, privateKey string) (string,
 	return privkey.PublicKey().String(), nil
 }
 
-// getRandomAlias generates a random alias using words from the BIP-39 word list.
-func getRandomAlias() string {
-	// Get the English BIP-39 word list
-	wordList := bip39.GetWordList()
-	// Pick a random word from the list
-	// TODO: Use a cryptographically secure random number generator or seed the random number generator
-	return wordList[rand.Intn(len(wordList))]
-}
-
-// IOUtilFileReader is a file reader using ioutil.
-type IOUtilFileReader struct{}
-
-// ReadFile reads a file and returns its content.
-func (r *IOUtilFileReader) ReadFile(filename string) ([]byte, error) {
-	data, err := ioutil.ReadFile(filename)
+// GetCurrentWalletBalanceInEUR returns the balance of a wallet in EUR.
+func (w *WalletConfig) GetCurrentWalletBalanceInEUR(alias string) (string, error) {
+	solBalance, err := w.fetchSolBalance(alias, w.KeyOps)
 	if err != nil {
-		return nil, fmt.Errorf("error reading file %s: %w", filename, err)
+		return "", err
 	}
-	return data, nil
+
+	rate, err := fetchSOLEURRate()
+	if err != nil {
+		return "", err
+	}
+
+	eurBalance := solBalance.Mul(rate)
+
+	return eurBalance.StringFixed(2), nil
 }
 
-// IOUtilFileWriter is a file writer using ioutil.
-type IOUtilFileWriter struct{}
-
-// WriteFile writes data to a file.
-func (w *IOUtilFileWriter) WriteFile(filename string, data []byte) error {
-	if err := ioutil.WriteFile(filename, data, 0644); err != nil {
-		return fmt.Errorf("error writing to file %s: %w", filename, err)
-	}
-	return nil
+// SwitchWallet switches the current wallet.
+func (w *WalletConfig) SwitchWallet(alias string) error {
+	return w.KeyOps.SetActiveKey(alias)
 }
 
-func (w *WalletConfig) IsValidSeed(mnemonic string) error {
-	// 1. Check if mnemonic is empty
-	if mnemonic == "" {
-		return fmt.Errorf("mnemonic is empty")
-	}
-
-	// 2. Split the mnemonic into words
-	words := strings.Fields(mnemonic)
-	wordCount := len(words)
-
-	// 3. Mnemonic should be 12, 15, 18, 21, or 24 words long
-	if wordCount != 12 && wordCount != 15 && wordCount != 18 && wordCount != 21 && wordCount != 24 {
-		return fmt.Errorf("invalid mnemonic length. got %d words, expected 12, 15, 18, 21, or 24 words", wordCount)
-	}
-
-	// 5. Check if the mnemonic as a whole is valid (this includes checksum validation)
-	if !bip39.IsMnemonicValid(mnemonic) {
-		return fmt.Errorf("mnemonic is not valid")
-	}
-
-	return nil
+// RetrieveWallets retrieves all wallets.
+func (w *WalletConfig) RetrieveWallets() ([]string, map[string]string, error) {
+	return w.KeyOps.PrintAllKeys()
 }
 
+// RetrieveCurrentWalletAddress retrieves the current wallet address.
+func (w *WalletConfig) RetrieveCurrentWalletAddress() (string, error) {
+	if w.Wallet != nil {
+		return w.Wallet.PublicKey().String(), nil
+	}
+	return w.KeyOps.GetCurrentPublicKey()
+}
+
+// RetrieveWalletAddressByAlias retrieves a wallet address by alias.
+func (w *WalletConfig) RetrieveWalletAddressByAlias(alias string) (string, error) {
+	return w.KeyOps.GetPublicKeyByAlias(alias)
+}
+
+// HasWallets checks if there are any wallets.
+func (w *WalletConfig) HasWallets() (bool, error) {
+	return w.KeyOps.IsKeyFilePresent()
+}
+
+// SendFunds sends funds to a recipient.
 func (w *WalletConfig) SendFunds(ctx context.Context, amount, recipient string) (string, error) {
 	var privKeyStr string
 	rpcClient := rpc.New(rpc.DevNet_RPC)
@@ -301,7 +205,7 @@ func (w *WalletConfig) SendFunds(ctx context.Context, amount, recipient string) 
 		return "", err
 	}
 
-	amountToSend, err := ConvertEurToLamports(amount, rate)
+	amountToSend, err := convertEurToLamports(amount, rate)
 	if err != nil {
 		return "", err
 	}
@@ -351,7 +255,112 @@ func (w *WalletConfig) SendFunds(ctx context.Context, amount, recipient string) 
 	return sig.String(), nil
 }
 
-func ConvertEurToLamports(eurStr string, eurToSolRate decimal.Decimal) (int64, error) {
+// createKeyPairWithMnemonic creates a key pair with an optional mnemonic.
+func createKeyPairWithMnemonic(mnemonic string) (string, ed25519.PrivateKey, error) {
+	if mnemonic == "" {
+		entropy, err := bip39.NewEntropy(128)
+		if err != nil {
+			return "", nil, fmt.Errorf("error generating entropy: %w", err)
+		}
+
+		mnemonic, err = bip39.NewMnemonic(entropy)
+		if err != nil {
+			return "", nil, fmt.Errorf("error generating mnemonic: %w", err)
+		}
+	}
+
+	entropy, err := bip39.EntropyFromMnemonic(mnemonic)
+	if err != nil {
+		return "", nil, fmt.Errorf("mnemonic not valid: %w", err)
+	}
+
+	privateKey := ed25519.NewKeyFromSeed([]byte(hex.EncodeToString(entropy)))
+	return mnemonic, privateKey, nil
+}
+
+// FetchSOLEURRate fetches the current SOL to EUR exchange rate.
+func (w *WalletConfig) FetchSOLEURRate() (decimal.Decimal, error) {
+	return fetchSOLEURRate()
+}
+
+// GetTransactionHistory retrieves the transaction history of the current wallet.
+func (w *WalletConfig) GetTransactionHistory() ([]*Transaction, error) {
+	var err error
+	var publicKeyStr string
+
+	// Check if the Wallet object is already available
+	if w.Wallet != nil {
+		publicKeyStr = w.Wallet.PublicKey().String()
+	} else {
+		publicKeyStr, err = w.KeyOps.GetCurrentPublicKey()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get current private key: %w", err)
+		}
+	}
+
+	// Fetch transactions using the public key
+	transactions, err := fetchTransactions(publicKeyStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch transactions: %w", err)
+	}
+
+	return transactions, nil
+}
+
+// getRandomAlias generates a random alias using words from the BIP-39 word list.
+func getRandomAlias() string {
+	// Get the English BIP-39 word list
+	wordList := bip39.GetWordList()
+	// Pick a random word from the list
+	// TODO: Use a cryptographically secure random number generator or seed the random number generator
+	return wordList[rand.Intn(len(wordList))]
+}
+
+// IOUtilFileReader is a file reader using ioutil.
+type IOUtilFileReader struct{}
+
+// ReadFile reads a file and returns its content.
+func (r *IOUtilFileReader) ReadFile(filename string) ([]byte, error) {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, fmt.Errorf("error reading file %s: %w", filename, err)
+	}
+	return data, nil
+}
+
+// IOUtilFileWriter is a file writer using ioutil.
+type IOUtilFileWriter struct{}
+
+// WriteFile writes data to a file.
+func (w *IOUtilFileWriter) WriteFile(filename string, data []byte) error {
+	if err := ioutil.WriteFile(filename, data, 0644); err != nil {
+		return fmt.Errorf("error writing to file %s: %w", filename, err)
+	}
+	return nil
+}
+
+// IsValidSeed checks if a mnemonic is valid.
+func (w *WalletConfig) IsValidSeed(mnemonic string) error {
+	if mnemonic == "" {
+		return fmt.Errorf("mnemonic is empty")
+	}
+
+	words := strings.Fields(mnemonic)
+	wordCount := len(words)
+
+	if wordCount != 12 && wordCount != 15 && wordCount != 18 && wordCount != 21 && wordCount != 24 {
+		return fmt.Errorf("invalid mnemonic length. got %d words, expected 12, 15, 18, 21, or 24 words", wordCount)
+	}
+
+	if !bip39.IsMnemonicValid(mnemonic) {
+		return fmt.Errorf("mnemonic is not valid")
+	}
+
+	return nil
+}
+
+// convertEurToLamports converts an amount in EUR to lamports.
+func convertEurToLamports(eurStr string, eurToSolRate decimal.Decimal) (int64, error) {
 	eurAmount, err := decimal.NewFromString(eurStr)
 	if err != nil {
 		return 0, fmt.Errorf("failed to parse EUR string: %w", err)

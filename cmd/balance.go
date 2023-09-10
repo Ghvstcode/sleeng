@@ -12,14 +12,14 @@ var BalanceCmd = &cobra.Command{
 	RunE:  displayBalance,
 }
 
-func displayBalance(cmd *cobra.Command, args []string) error {
+func displayBalance(_ *cobra.Command, _ []string) error {
 	var balance string
 	var err error
 	wc := wallet.NewWalletConfig()
 	if aliasFlag == "" {
-		balance, err = wc.GetCurrentWalletBalanceInEUR("") // Retrieve balance of the current active wallet
+		balance, err = wc.GetCurrentWalletBalanceInEUR("")
 	} else {
-		balance, err = wc.GetCurrentWalletBalanceInEUR(aliasFlag) // Retrieve balance of the wallet by alias
+		balance, err = wc.GetCurrentWalletBalanceInEUR(aliasFlag)
 	}
 
 	if err != nil {
