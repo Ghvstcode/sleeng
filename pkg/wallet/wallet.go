@@ -359,8 +359,6 @@ func ConvertEurToLamports(eurStr string, eurToSolRate decimal.Decimal) (int64, e
 
 	solAmount := eurAmount.Div(eurToSolRate)
 
-	fmt.Println("solAmount", solAmount)
-
 	lamports := solAmount.Mul(decimal.NewFromInt(1_000_000_000)).IntPart()
 
 	return lamports, nil
