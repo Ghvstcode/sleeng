@@ -7,11 +7,12 @@ import (
 	"github.com/fatih/color"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
+	"sort"
 )
 
 var InitCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Creates a new Solana wallet",
+	Short: "Creates a new Solana wallet and saves the private key to disk",
 	RunE:  initializeWallet,
 }
 
@@ -80,6 +81,9 @@ func importExistingPaperWallet(wc *wallet.WalletConfig) error {
 }
 
 func handleFileBasedWallet(wc *wallet.WalletConfig) error {
+	if privateKeyFlag != "" {
+
+	}
 
 	hasWallets, err := wc.HasWallets()
 	if err != nil {
@@ -215,7 +219,21 @@ func processPostInitializationChoice(choice string, wc *wallet.WalletConfig) err
 
 		printBlue("Current SOL/EUR Rate: €%s\n", rate)
 	case "Retrieve Transactions":
-		// Retrieve Transactions
+		transactions, err := wc.GetTransactionHistory()
+		if err != nil {
+			return fmt.Errorf("failed to retrieve transactions: %w", err)
+		}
+
+		sort.Slice(transactions, func(i, j int) bool {
+			return transactions[i].Timestamp.After(transactions[j].Timestamp)
+		})
+
+		rate, err := wc.FetchSOLEURRate()
+		if err != nil {
+			return fmt.Errorf("error fetching SOL to EUR rate: %v", err)
+		}
+
+		printTransactions(transactions, rate)
 	default:
 		fmt.Println("Invalid choice. Returning to main menu.")
 	}
