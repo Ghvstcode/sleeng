@@ -1,13 +1,16 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"github.com/Ghvstcode/sleeng/pkg/wallet"
 	"github.com/atotto/clipboard"
 	"github.com/fatih/color"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
+	"log"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -196,7 +199,7 @@ func promptForInput(label string, validator func(input string) error) (string, e
 
 func postWalletInitializationActions(wc *wallet.WalletConfig) error {
 	for {
-		choice, err := promptForChoice("What would you like to do next?", []string{"Check Balance(EUR)", "Get Current SOL/EUR Rate", "Retrieve Wallet Address", "Retrieve Transactions", "Exit"})
+		choice, err := promptForChoice("What would you like to do next?", []string{"Check Balance(EUR)", "Get Current SOL/EUR Rate", "Retrieve Wallet Address", "Retrieve Transactions", "Send EUR", "Exit"})
 		if err != nil {
 			return fmt.Errorf("failed to get user choice: %w", err)
 		}
@@ -250,6 +253,29 @@ func processPostInitializationChoice(choice string, wc *wallet.WalletConfig) err
 		}
 
 		printTransactions(transactions, rate)
+	case "Send EUR":
+		destination, err := promptForInput("Enter the recipient's address:", nil)
+		if err != nil {
+			return err
+		}
+
+		amount, err := promptForInput("Enter the amount of EUR to send:", func(input string) error {
+			val, err := strconv.ParseFloat(input, 64)
+			if err != nil {
+				return fmt.Errorf("invalid amount: %w", err)
+			}
+			if val <= 0 {
+				return fmt.Errorf("amount must be greater than 0")
+			}
+			return nil
+		})
+
+		signature, err := wc.SendFunds(context.Background(), amount, destination)
+		if err != nil {
+			log.Fatalf("Failed to send funds: %v", err.Error())
+		}
+
+		fmt.Printf("Successfully sent %s EUR to %s. Transaction Signature: %s\n", amount, destination, signature)
 	default:
 		fmt.Println("Invalid choice. Returning to main menu.")
 	}

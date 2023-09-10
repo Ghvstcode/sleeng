@@ -17,7 +17,7 @@ var (
 func init() {
 	RootCmd.PersistentFlags().StringVarP(&privateKeyFlag, "key", "k", "", "A base58 encoded private key to use instead of the one saved on disk")
 	RootCmd.PersistentFlags().StringVarP(&aliasFlag, "alias", "a", "", "Optional alias for the wallet")
-	RootCmd.AddCommand(InitCmd, AddressCmd, BalanceCmd, exchangeCmd, transactionsCmd)
+	RootCmd.AddCommand(InitCmd, AddressCmd, BalanceCmd, exchangeCmd, transactionsCmd, sendCmd)
 }
 
 func Execute() error {

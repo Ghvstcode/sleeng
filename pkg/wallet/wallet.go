@@ -1,9 +1,14 @@
 package wallet
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"github.com/gagliardetto/solana-go"
+	"github.com/gagliardetto/solana-go/programs/system"
+	"github.com/gagliardetto/solana-go/rpc"
+	confirm "github.com/gagliardetto/solana-go/rpc/sendAndConfirmTransaction"
+	"github.com/gagliardetto/solana-go/rpc/ws"
 	"github.com/mr-tron/base58"
 	"github.com/shopspring/decimal"
 	"github.com/tyler-smith/go-bip39"
@@ -267,45 +272,96 @@ func (w *WalletConfig) IsValidSeed(mnemonic string) error {
 	return nil
 }
 
-//func (w *WalletConfig) SendFunds(amount string, recipient string) (string, error) {
-//	if w.Wallet != nil {
-//		publicKeyStr = w.Wallet.PublicKey().String()
-//	} else {
-//		publicKeyStr, err = w.KeyOps.GetCurrentPublicKey()
-//		if err != nil {
-//			return nil, fmt.Errorf("failed to get current private key: %w", err)
-//		}
-//	}
-//
-//	// 1. Check if the amount is valid
-//	amountDec, err := decimal.NewFromString(amount)
-//	if err != nil {
-//		return "", fmt.Errorf("invalid amount: %w", err)
-//	}
-//
-//	// 2. Check if the recipient is valid
-//	recipientPubkey, err := solana.PublicKeyFromBase58(recipient)
-//	if err != nil {
-//		return "", fmt.Errorf("invalid recipient: %w", err)
-//	}
-//
-//	// 3. Check if the wallet is unlocked
-//	if w.Wallet == nil {
-//		return "", fmt.Errorf("wallet is locked")
-//	}
-//
-//	// 4. Check if the wallet has enough balance
-//	if w.Wallet.Balance().LessThan(amountDec) {
-//		return "", fmt.Errorf("insufficient balance")
-//	}
-//
-//	// 5. Send the funds
-//	txHash, err := w.Wallet.Transfer(recipientPubkey, amountDec)
-//	if err != nil {
-//		return "", fmt.Errorf("error sending funds: %w", err)
-//	}
-//
-//	return txHash, nil
-//}
-//
-//}
+func (w *WalletConfig) SendFunds(ctx context.Context, amount, recipient string) (string, error) {
+	var privKeyStr string
+	rpcClient := rpc.New(rpc.DevNet_RPC)
+	wsClient, err := ws.Connect(ctx, rpc.DevNet_WS)
+	if err != nil {
+		return "", err
+	}
+
+	if w.Wallet != nil {
+		privKeyStr = w.Wallet.PrivateKey.String()
+	} else {
+		privKeyStr, err = w.KeyOps.GetCurrentPrivateKey()
+		if err != nil {
+			return "", fmt.Errorf("failed to get current private key: %w", err)
+		}
+	}
+
+	accountFrom, err := solana.PrivateKeyFromBase58(privKeyStr)
+	if err != nil {
+		return "", err
+	}
+
+	accountTo := solana.MustPublicKeyFromBase58(recipient)
+
+	rate, err := fetchSOLEURRate()
+	if err != nil {
+		return "", err
+	}
+
+	amountToSend, err := ConvertEurToLamports(amount, rate)
+	if err != nil {
+		return "", err
+	}
+
+	recent, err := rpcClient.GetRecentBlockhash(ctx, rpc.CommitmentFinalized)
+	if err != nil {
+		return "", err
+	}
+
+	tx, err := solana.NewTransaction(
+		[]solana.Instruction{
+			system.NewTransferInstruction(
+				uint64(amountToSend),
+				accountFrom.PublicKey(),
+				accountTo,
+			).Build(),
+		},
+		recent.Value.Blockhash,
+		solana.TransactionPayer(accountFrom.PublicKey()),
+	)
+	if err != nil {
+		return "", err
+	}
+
+	_, err = tx.Sign(
+		func(key solana.PublicKey) *solana.PrivateKey {
+			if accountFrom.PublicKey().Equals(key) {
+				return &accountFrom
+			}
+			return nil
+		},
+	)
+	if err != nil {
+		return "", fmt.Errorf("unable to sign transaction: %w", err)
+	}
+
+	sig, err := confirm.SendAndConfirmTransaction(
+		ctx,
+		rpcClient,
+		wsClient,
+		tx,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	return sig.String(), nil
+}
+
+func ConvertEurToLamports(eurStr string, eurToSolRate decimal.Decimal) (int64, error) {
+	eurAmount, err := decimal.NewFromString(eurStr)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse EUR string: %w", err)
+	}
+
+	solAmount := eurAmount.Div(eurToSolRate)
+
+	fmt.Println("solAmount", solAmount)
+
+	lamports := solAmount.Mul(decimal.NewFromInt(1_000_000_000)).IntPart()
+
+	return lamports, nil
+}
