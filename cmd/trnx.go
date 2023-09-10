@@ -44,6 +44,10 @@ func executeTransactions(cmd *cobra.Command, args []string) error {
 }
 
 func printTransactions(transactions []*wallet.Transaction, rate decimal.Decimal) {
+	if len(transactions) == 0 {
+		fmt.Println("No transactions to display.")
+		return
+	}
 	for _, tx := range transactions {
 		printTransaction(tx, rate)
 	}

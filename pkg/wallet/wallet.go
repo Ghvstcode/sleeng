@@ -179,7 +179,7 @@ func (w *WalletConfig) GetTransactionHistory() ([]*Transaction, error) {
 	if w.Wallet != nil {
 		publicKeyStr = w.Wallet.PublicKey().String()
 	} else {
-		publicKeyStr, err = w.KeyOps.GetCurrentPrivateKey()
+		publicKeyStr, err = w.KeyOps.GetCurrentPublicKey()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get current private key: %w", err)
 		}
