@@ -1,4 +1,4 @@
-package sleeng
+package main
 
 import (
 	"github.com/Ghvstcode/sleeng/cmd"

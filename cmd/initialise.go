@@ -67,7 +67,7 @@ func createNewPaperWallet(wc *wallet.WalletConfig) error {
 }
 
 func importExistingPaperWallet(wc *wallet.WalletConfig) error {
-	seedPhrase, err := promptForInput("Please enter your existing seed phrase:", wallet.IsValidSeedPhrase)
+	seedPhrase, err := promptForInput("Please enter your existing seed phrase:", wc.IsValidSeed)
 	if err != nil {
 		return fmt.Errorf("failed to get seed phrase: %w", err)
 	}

@@ -10,6 +10,7 @@ import (
 	"golang.org/x/crypto/ed25519"
 	"io/ioutil"
 	"math/rand"
+	"strings"
 )
 
 type WalletConfig struct {
@@ -222,5 +223,28 @@ func (w *IOUtilFileWriter) WriteFile(filename string, data []byte) error {
 	if err := ioutil.WriteFile(filename, data, 0644); err != nil {
 		return fmt.Errorf("error writing to file %s: %w", filename, err)
 	}
+	return nil
+}
+
+func (w *WalletConfig) IsValidSeed(mnemonic string) error {
+	// 1. Check if mnemonic is empty
+	if mnemonic == "" {
+		return fmt.Errorf("mnemonic is empty")
+	}
+
+	// 2. Split the mnemonic into words
+	words := strings.Fields(mnemonic)
+	wordCount := len(words)
+
+	// 3. Mnemonic should be 12, 15, 18, 21, or 24 words long
+	if wordCount != 12 && wordCount != 15 && wordCount != 18 && wordCount != 21 && wordCount != 24 {
+		return fmt.Errorf("invalid mnemonic length. got %d words, expected 12, 15, 18, 21, or 24 words", wordCount)
+	}
+
+	// 5. Check if the mnemonic as a whole is valid (this includes checksum validation)
+	if !bip39.IsMnemonicValid(mnemonic) {
+		return fmt.Errorf("mnemonic is not valid")
+	}
+
 	return nil
 }
