@@ -6,9 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/mr-tron/base58"
 	"github.com/shopspring/decimal"
 	"os"
+	"strconv"
+	"strings"
 )
 
 // FileReader is an interface that wraps the ReadFile method.
@@ -58,7 +59,7 @@ func (k *KeyOps) GetCurrentPrivateKey() (string, error) {
 		return "", ErrActiveWalletNotFound
 	}
 
-	return activeWallet.Key, nil
+	return activeWallet.PrivateKey, nil
 }
 
 // GetPrivateKeyByAlias retrieves a wallet's private key by its alias.
@@ -73,7 +74,7 @@ func (k *KeyOps) GetPrivateKeyByAlias(alias string) (string, error) {
 		return "", fmt.Errorf("no wallet found for alias: %s", alias)
 	}
 
-	return wallet.Key, nil
+	return wallet.PrivateKey, nil
 }
 
 // IsKeyFilePresent checks if there is a file containing some keys already in place.
@@ -168,10 +169,10 @@ func (k *KeyOps) WriteKeyToFile(alias string, key ed25519.PrivateKey, walletAddr
 		return fmt.Errorf("alias already exists: %s", alias)
 	}
 
-	data.Wallets[alias] = Wallet{Key: base58.Encode(key), Balance: decimal.Zero, PublicKey: walletAddress}
+	solanaCliCompatiblekey := getSolCLIComptKey(key)
+	data.Wallets[alias] = Wallet{PrivateKey: solanaCliCompatiblekey, Balance: decimal.Zero, PublicKey: walletAddress}
 	data.ActiveAlias = alias // Setting the new key as active
 
-	fmt.Println("New key added successfully", alias)
 	updatedData, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("error marshaling JSON: %w", err)
@@ -213,4 +214,25 @@ func (k *KeyOps) PrintAllKeys() ([]string, map[string]string, error) {
 	}
 
 	return aliases, keyMap, nil
+}
+
+func getSolCLIComptKey(key ed25519.PrivateKey) string {
+	intArr := make([]int, 0, len(key))
+
+	for _, j := range key {
+		intArr = append(intArr, int(j))
+	}
+
+	var builder strings.Builder
+	builder.WriteString("[")
+
+	for i, n := range intArr {
+		builder.WriteString(strconv.Itoa(n))
+		if i < len(intArr)-1 {
+			builder.WriteString(",")
+		}
+	}
+	builder.WriteString("]")
+
+	return builder.String()
 }

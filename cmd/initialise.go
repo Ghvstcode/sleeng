@@ -8,6 +8,7 @@ import (
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 	"sort"
+	"strings"
 )
 
 var InitCmd = &cobra.Command{
@@ -123,7 +124,8 @@ func selectExistingWallet(wc *wallet.WalletConfig) error {
 		return fmt.Errorf("failed to get user choice: %w", err)
 	}
 
-	err = wc.SwitchWallet(selectedWallet)
+	actualAlias := strings.Split(selectedWallet, " ")[0]
+	err = wc.SwitchWallet(actualAlias)
 	if err != nil {
 		return fmt.Errorf("failed to switch to existing wallet: %w", err)
 	}

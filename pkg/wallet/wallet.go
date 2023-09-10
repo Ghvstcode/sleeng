@@ -23,9 +23,9 @@ type WalletConfig struct {
 }
 
 type Wallet struct {
-	Key       string          `json:"key"`
-	Balance   decimal.Decimal `json:"balance"`
-	PublicKey string          `json:"publicKey"`
+	PrivateKey string          `json:"key"`
+	Balance    decimal.Decimal `json:"balance"`
+	PublicKey  string          `json:"publicKey"`
 }
 
 type WalletData struct {
